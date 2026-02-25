@@ -1,0 +1,10 @@
+APP_ENV=development
+DATABASE_URL=postgresql+psycopg2://pguser:pgpass@db:5432/appdb
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=test
+AWS_SECRET_ACCESS_KEY=test
+AWS_S3_ENDPOINT_URL=http://localstack:4566
+AWS_S3_BUCKET=csv-uploads
+TEMPORAL_ADDRESS=temporal:7233
+TEMPORAL_NAMESPACE=default
+CSV_TASK_QUEUE=csv-conversion-queue

@@ -1,0 +1,63 @@
+services:
+  db:
+    image: postgres:16
+    container_name: odi_exam_db
+    restart: unless-stopped
+    env_file: docker/env/db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    image: fastapi-dev:latest
+    container_name: odi_exam_api
+    restart: unless-stopped
+    depends_on:
+      - db
+      - localstack
+      - temporal
+    env_file: docker/env/fastapi
+    ports:
+      - "8000:8000"
+    user: "1000:1000"
+    volumes:
+      - ./src/app:/app
+
+#  temporal-worker:
+#    image: temporal-worker-dev:latest
+#    container_name: odi_exam_temporal_worker
+#    restart: unless-stopped
+#    depends_on:
+#      - temporal
+#    env_file: docker/env/fastapi
+#    user: "1000:1000"
+#    working_dir: /app
+#    volumes:
+#      - ./src/temporal:/app
+
+  temporal:
+    image: temporalio/temporal:latest
+    container_name: odi_exam_temporal
+    restart: unless-stopped
+    command: ["server", "start-dev", "--ip", "0.0.0.0", "--namespace", "default"]
+    ports:
+      - "7233:7233"
+      - "8233:8233"
+
+  localstack:
+    image: localstack/localstack:latest
+    container_name: odi_exam_localstack
+    restart: unless-stopped
+    environment:
+      - SERVICES=s3
+      - DEFAULT_REGION=us-east-1
+      - EDGE_PORT=4566
+    ports:
+      - "4566:4566"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./docker/localstack/init-s3.sh:/etc/localstack/init/ready.d/init-s3.sh
+
+volumes:
+  postgres_data:
