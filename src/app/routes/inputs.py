@@ -1,13 +1,11 @@
 import hashlib
 import json
 from services.temporal import start_csv_conversion
-from datetime import date
 from typing import List
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from temporalio.client import Client
 
 from services.database import get_db
 from models import IngestItem

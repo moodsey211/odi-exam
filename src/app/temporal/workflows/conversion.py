@@ -1,4 +1,3 @@
-# src/app/temporal/workflows/conversion.py
 from datetime import timedelta
 from temporalio import workflow
 from temporalio.common import RetryPolicy
@@ -75,6 +74,17 @@ class CsvConversionWorkflow:
             status = ingestion["status"] if ingestion else None
 
         if status == "uploaded":
+            await workflow.execute_activity(
+                "process_csv_file",
+                ingestion["s3_path"],
+                schedule_to_close_timeout=timedelta(minutes=1),
+                retry_policy=RetryPolicy(
+                    initial_interval=timedelta(seconds=1),
+                    backoff_coefficient=2.0,
+                    maximum_interval=timedelta(seconds=30),
+                    maximum_attempts=5,
+                ),
+            )
             return "uploaded"
 
         raise RuntimeError(

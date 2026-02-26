@@ -2,12 +2,12 @@ import json
 import os
 from pathlib import Path
 
-import boto3
 from sqlalchemy import text
 from temporalio import activity
 
 from services.database import SessionLocal
-from services.s3 import upload_csv
+from services.s3 import upload_csv, download_csv
+from services.temporal import process_csv_file as _process_csv_file
 
 UPLOAD_DIR = Path(os.getenv("UPLOADS_DIR", "uploads"))
 
@@ -169,9 +169,104 @@ async def upload_csv_to_s3_and_mark_uploaded(entry_id: int) -> str:
         db.close()
 
 
+@activity.defn
+async def process_csv_file(s3path: str) -> None:
+    await _process_csv_file(s3path)
+
+
+@activity.defn
+async def ingest_csv_from_s3(s3path: str) -> str:
+    local_path = download_csv(s3path)
+    db = SessionLocal()
+    try:
+        import csv as csv_mod
+
+        with open(local_path, newline="", encoding="utf-8") as f:
+            reader = csv_mod.DictReader(f)
+            for row in reader:
+                # Check if patient already exists
+                existing = db.execute(
+                    text("SELECT id FROM patients WHERE mrn = :mrn"),
+                    {"mrn": row["mrn"]},
+                ).scalar()
+
+                if existing is not None:
+                    patient_id = existing
+                    db.execute(
+                        text(
+                            """
+                            INSERT INTO persons (id, first_name, last_name, birth_date)
+                            VALUES (:id, :first_name, :last_name, :birth_date)
+                            ON CONFLICT (id) DO UPDATE SET
+                                first_name = COALESCE(EXCLUDED.first_name, persons.first_name),
+                                last_name = COALESCE(EXCLUDED.last_name, persons.last_name),
+                                birth_date = COALESCE(EXCLUDED.birth_date, persons.birth_date)
+                            """
+                        ),
+                        {
+                            "id": patient_id,
+                            "first_name": row["first_name"] or None,
+                            "last_name": row["last_name"] or None,
+                            "birth_date": row["birth_date"] or None,
+                        },
+                    )
+                else:
+                    # New patient: get next id from sequence
+                    patient_id = db.execute(
+                        text("SELECT nextval('patients_id_seq')")
+                    ).scalar()
+                    # Insert person first (FK: patients.id → persons.id)
+                    db.execute(
+                        text(
+                            """
+                            INSERT INTO persons (id, first_name, last_name, birth_date)
+                            VALUES (:id, :first_name, :last_name, :birth_date)
+                            """
+                        ),
+                        {
+                            "id": patient_id,
+                            "first_name": row["first_name"] or None,
+                            "last_name": row["last_name"] or None,
+                            "birth_date": row["birth_date"] or None,
+                        },
+                    )
+                    # Insert patient with the same id
+                    db.execute(
+                        text(
+                            "INSERT INTO patients (id, mrn) VALUES (:id, :mrn)"
+                        ),
+                        {"id": patient_id, "mrn": row["mrn"]},
+                    )
+
+                # Insert visit (skip duplicates)
+                db.execute(
+                    text(
+                        """
+                        INSERT INTO visits (visit_account_number, patient_id, visit_date, reason)
+                        VALUES (:visit_account_number, :patient_id, :visit_date, :reason)
+                        ON CONFLICT (visit_account_number) DO NOTHING
+                        """
+                    ),
+                    {
+                        "visit_account_number": row["visit_account_number"],
+                        "patient_id": patient_id,
+                        "visit_date": row["visit_date"],
+                        "reason": row["reason"],
+                    },
+                )
+
+        db.commit()
+        return "ingested"
+    finally:
+        db.close()
+        os.unlink(local_path)
+
+
 __all__ = [
     "get_ingestion",
     "convert_to_csv_and_mark_converted",
     "upload_csv_to_s3_and_mark_uploaded",
+    "process_csv_file",
+    "ingest_csv_from_s3",
 ]
 

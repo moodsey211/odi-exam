@@ -11,17 +11,19 @@ if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
 from workflows.conversion import CsvConversionWorkflow
-from services.database import get_db
-from temporal.activities import (  # noqa: E402
+from workflows.ingestion import CsvIngestionWorkflow
+from temporal.activities import (
     get_ingestion,
     convert_to_csv_and_mark_converted,
     upload_csv_to_s3_and_mark_uploaded,
+    process_csv_file,
+    ingest_csv_from_s3,
 )
 
 async def main() -> None:
     address = getenv("TEMPORAL_ADDRESS", "temporal:7233")
     namespace = getenv("TEMPORAL_NAMESPACE", "default")
-    csvTaskQueue = getenv("CSV_TASK_QUEUE", "csv-conversion-queue")
+    csvTaskQueue = getenv("BG_TASK_QUEUE", "background-task-queue")
 
     client = await Client.connect(address, namespace=namespace)
 
@@ -29,11 +31,16 @@ async def main() -> None:
     worker = Worker(
         client,
         task_queue=csvTaskQueue,
-        workflows=[CsvConversionWorkflow],
+        workflows=[
+            CsvConversionWorkflow,
+            CsvIngestionWorkflow,
+        ],
         activities=[
             get_ingestion,
             convert_to_csv_and_mark_converted,
             upload_csv_to_s3_and_mark_uploaded,
+            process_csv_file,
+            ingest_csv_from_s3,
         ],
     )
 

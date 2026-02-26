@@ -1,0 +1,140 @@
+{
+  "info": {
+    "_postman_id": "1c3c9ce3-8974-44c9-a571-13f710661d2f",
+    "name": "DataIngestion",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "60034"
+  },
+  "item": [
+    {
+      "name": "/health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{url}}/health",
+          "host": [
+            "{{url}}"
+          ],
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "/db-check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{url}}/db-check",
+          "host": [
+            "{{url}}"
+          ],
+          "path": [
+            "db-check"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "/ingest",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "[\r\n    {\r\n        \"mrn\":\"MRN-1001\",\r\n        \"first_name\":\"John\",\r\n        \"last_name\":\"Doe\",\r\n        \"birth_date\":\"1990-02-14\",\r\n        \"visit_account_number\":\"VST-9001\",\r\n        \"visit_date\":\"2024-11-01\",\r\n        \"reason\":\"Annual Checkup\"\r\n    }\r\n]",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{url}}/ingest",
+          "host": [
+            "{{url}}"
+          ],
+          "path": [
+            "ingest"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "/patients",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{url}}/patients",
+          "host": [
+            "{{url}}"
+          ],
+          "path": [
+            "patients"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "/patients/<id>",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{url}}/patients/{{id}}",
+          "host": [
+            "{{url}}"
+          ],
+          "path": [
+            "patients",
+            "{{id}}"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "url",
+      "value": ""
+    },
+    {
+      "key": "id",
+      "value": "",
+      "type": "default"
+    }
+  ]
+}

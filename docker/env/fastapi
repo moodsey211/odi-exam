@@ -7,4 +7,4 @@ AWS_S3_ENDPOINT_URL=http://localstack:4566
 AWS_S3_BUCKET=csv-uploads
 TEMPORAL_ADDRESS=temporal:7233
 TEMPORAL_NAMESPACE=default
-CSV_TASK_QUEUE=csv-conversion-queue
+BG_TASK_QUEUE=background-task-queue
